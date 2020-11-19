@@ -188,7 +188,9 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
-impl substratekitties::Trait for Runtime {}
+impl substratekitties::Trait for Runtime {
+	type Event = Event;
+}
 
 /// Used for the module template in `./template.rs`
 impl template::Trait for Runtime {
@@ -213,7 +215,7 @@ construct_runtime!(
 		Indices: indices,
 		Balances: balances,
 		Sudo: sudo,
-		Substratekitties: substratekitties::{Module, Call, Storage},
+		Substratekitties: substratekitties::{Module, Call, Storage, Event<T>},
 		// Used for the module template in `./template.rs`
 		TemplateModule: template::{Module, Call, Storage, Event<T>},
 		ExampleModule: substrate_module_template::{Module, Call, Storage, Event<T>},
