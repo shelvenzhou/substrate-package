@@ -22,9 +22,11 @@ decl_event!(
     pub enum Event<T>
     where
         <T as system::Trait>::AccountId,
-        <T as system::Trait>::Hash
+        <T as system::Trait>::Hash,
+        <T as balances::Trait>::Balance
     {
         Created(AccountId, Hash),
+        PriceSet(AccountId, Hash, Balance),
     }
 );
 
@@ -70,11 +72,32 @@ decl_module! {
 
             Ok(())
         }
+
+        fn set_price(origin, kitty_id: T::Hash, new_price: T::Balance) -> Result {
+            let sender = ensure_signed(origin)?;
+
+            ensure!(<Kitties<T>>::exists(kitty_id));
+
+            let owner = Self::owner_of(kitty_id).ok_or("No owner for this kitty")?;
+
+            ensure!(sender == owner, "You are not the owner");
+
+            let mut kitty = Self::kitty(kitty_id);
+            kitty.price = new_price;
+
+            <Kitties<T>>::insert(kitty_id, kitty);
+
+            Self::deposit_event(RawEvent::PriceSet(owner, kitty_id, new_price));
+
+            Ok(())
+        }
     }
 }
 
 impl<T: Trait> Module<T> {
     fn mint(to: T::AccountId, kitty_id: T::Hash, new_kitty: Kitty<T::Hash, T::Balance>) -> Result {
+        ensure!(!<KittyOwner<T>>::exists(kitty_id), "Kitty already exists");
+
         let owned_kitty_count = Self::owned_kitty_count(&to);
         let new_owned_kitty_count = owned_kitty_count
             .checked_add(1)
@@ -84,8 +107,6 @@ impl<T: Trait> Module<T> {
         let new_all_kitties_count = all_kitties_count
             .checked_add(1)
             .ok_or("Overflow adding a new kitty to total supply")?;
-
-        ensure!(!<KittyOwner<T>>::exists(kitty_id), "Kitty already exists");
 
         <Kitties<T>>::insert(kitty_id, new_kitty);
         <KittyOwner<T>>::insert(kitty_id, &to);
